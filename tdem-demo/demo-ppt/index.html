@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUM 会话回放 · 选课失败场景 Demo | TDEM</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --brand-blue: #0052D9;
+    --brand-blue-light: #E6EFFD;
+    --brand-green: #00A870;
+    --brand-green-light: #E3F5EE;
+    --brand-orange: #ED7B2F;
+    --brand-orange-light: #FCEFE2;
+    --brand-purple: #834EC2;
+    --brand-purple-light: #F0E8F9;
+    --text-title: #1B2A4E;
+    --text-primary: #2C3E5C;
+    --text-secondary: #4E5969;
+    --text-tertiary: #86909C;
+    --bg-page: #F5F7FA;
+    --bg-card: #FFFFFF;
+    --bg-subtle: #FAFBFC;
+    --border: #E5E7EB;
+    --border-light: #F0F2F5;
+    --danger: #E34D59;
+    --shadow-sm: 0 1px 2px rgba(27, 42, 78, 0.04);
+    --shadow-md: 0 4px 16px rgba(27, 42, 78, 0.06);
+  }
+
+  html, body { height: 100%; font-family: 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif; background: var(--bg-page); color: var(--text-primary); font-size: 13px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow: hidden; }
+
+  /* ===== PPT Single-Page Container ===== */
+  .ppt-page {
+    width: 100%; height: 100vh; max-width: 1920px;
+    margin: 0 auto; padding: 8px 14px;
+    display: flex; flex-direction: column; gap: 6px;
+    overflow: hidden;
+  }
+
+  /* ===== Header ===== */
+  .ppt-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 14px; background: var(--bg-card);
+    border-radius: 8px; box-shadow: var(--shadow-sm);
+    border-left: 4px solid var(--brand-blue);
+    flex-shrink: 0;
+  }
+  .ppt-title { font-size: 15px; font-weight: 700; color: var(--text-title); }
+  .ppt-title .accent { color: var(--brand-blue); font-style: italic; }
+  .ppt-logo { display: flex; align-items: center; gap: 6px; padding: 3px 8px; background: var(--bg-subtle); border-radius: 6px; border: 1px solid var(--border-light); }
+  .ppt-logo-icon { width: 22px; height: 22px; border-radius: 5px; background: linear-gradient(135deg, var(--brand-blue), var(--brand-purple)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 11px; }
+  .ppt-logo-text { display: flex; flex-direction: column; line-height: 1.15; }
+  .ppt-logo-name { font-size: 12px; font-weight: 700; color: var(--text-title); letter-spacing: 1px; }
+  .ppt-logo-subtitle { font-size: 9px; color: var(--text-tertiary); }
+
+  /* ===== Body: Left sidebar + Right demo ===== */
+  .ppt-body { display: flex; gap: 8px; flex: 1; min-height: 0; }
+
+  /* ===== Left: Capability Cards ===== */
+  .capability-section {
+    display: flex; flex-direction: column; gap: 5px;
+    width: 256px; flex-shrink: 0;
+  }
+  .section-label {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 8px; background: var(--brand-blue);
+    color: #fff; font-size: 10px; font-weight: 700;
+    border-radius: 4px; letter-spacing: 0.5px;
+    align-self: flex-start;
+  }
+  .capability-list {
+    display: flex; flex-direction: column;
+    gap: 5px; flex: 1; min-height: 0;
+  }
+
+  /* Card base */
+  .cap-card {
+    background: var(--bg-card); border-radius: 6px;
+    padding: 6px 8px; box-shadow: var(--shadow-sm);
+    border-left: 3px solid var(--brand-blue);
+    display: flex; flex-direction: column; gap: 2px;
+    flex: 1; min-height: 0; overflow: hidden;
+  }
+  .cap-card.c1 { border-left-color: var(--brand-blue); }
+  .cap-card.c2 { border-left-color: var(--brand-green); }
+  .cap-card.c3 { border-left-color: var(--brand-orange); }
+  .cap-card.c4 { border-left-color: var(--brand-purple); }
+
+  .cap-card-header { display: flex; align-items: center; gap: 5px; }
+  .cap-num {
+    width: 18px; height: 18px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 800; flex-shrink: 0;
+  }
+  .cap-card.c1 .cap-num { background: var(--brand-blue-light); color: var(--brand-blue); }
+  .cap-card.c2 .cap-num { background: var(--brand-green-light); color: var(--brand-green); }
+  .cap-card.c3 .cap-num { background: var(--brand-orange-light); color: var(--brand-orange); }
+  .cap-card.c4 .cap-num { background: var(--brand-purple-light); color: var(--brand-purple); }
+  .cap-icon { font-size: 11px; flex-shrink: 0; }
+  .cap-title { font-size: 11px; font-weight: 700; color: var(--text-title); }
+
+  .cap-desc { font-size: 9.5px; line-height: 1.35; color: var(--text-secondary); }
+  .cap-desc strong { color: var(--text-title); font-weight: 600; }
+
+  /* Tag list — all tags use card's accent color */
+  .cap-tag-list { list-style: none; display: flex; flex-wrap: wrap; gap: 3px; margin: 1px 0; }
+  .cap-tag {
+    display: inline-block; padding: 0 5px;
+    border-radius: 3px; font-size: 9.5px; line-height: 1.6;
+    white-space: nowrap;
+  }
+  /* Per-card tag colors — unified, no random highlighting */
+  .cap-card.c1 .cap-tag { background: var(--brand-blue-light); color: var(--brand-blue); }
+  .cap-card.c2 .cap-tag { background: var(--brand-green-light); color: var(--brand-green); }
+  .cap-card.c3 .cap-tag { background: var(--brand-orange-light); color: var(--brand-orange); }
+  .cap-card.c4 .cap-tag { background: var(--brand-purple-light); color: var(--brand-purple); }
+
+  /* Sub-section label inside card 4 */
+  .cap-sub { font-size: 9px; color: var(--text-tertiary); font-weight: 600; margin-top: 1px; }
+
+  /* ===== Right: Demo Panel ===== */
+  .demo-panel {
+    display: flex; flex-direction: column; gap: 5px;
+    background: var(--bg-card); border-radius: 8px;
+    padding: 7px 10px; box-shadow: var(--shadow-sm);
+    border-left: 4px solid var(--brand-orange);
+    flex: 1; min-height: 0; min-width: 0;
+  }
+  .demo-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 4px; border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .demo-title { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-title); }
+  .demo-scenario-tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 1px 7px; background: var(--brand-orange-light);
+    color: var(--brand-orange); font-size: 10px; font-weight: 700;
+    border-radius: 10px;
+  }
+  .demo-meta { display: flex; gap: 8px; font-size: 10px; color: var(--text-tertiary); }
+  .demo-meta-item { display: flex; align-items: center; gap: 3px; }
+  .demo-meta-item strong { color: var(--text-primary); font-weight: 600; }
+
+  /* Browser chrome */
+  .demo-browser {
+    border-radius: 6px; overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--bg-card); box-shadow: var(--shadow-md);
+    flex: 1; display: flex; flex-direction: column; min-height: 0;
+  }
+  .demo-browser-bar {
+    display: flex; align-items: center; gap: 5px;
+    padding: 3px 8px; background: #F4F5F7;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .demo-browser-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .demo-browser-dot.red { background: #FF5F56; }
+  .demo-browser-dot.yellow { background: #FFBD2E; }
+  .demo-browser-dot.green { background: #27C93F; }
+  .demo-browser-url {
+    margin-left: 5px; padding: 1px 7px; background: #fff;
+    border: 1px solid var(--border-light); border-radius: 8px;
+    font-size: 9px; color: var(--text-tertiary);
+    font-family: 'SF Mono', 'Consolas', monospace;
+    flex: 1; max-width: 360px;
+  }
+  .demo-browser-refresh {
+    margin-left: auto; padding: 2px 7px; background: var(--brand-blue-light);
+    color: var(--brand-blue); font-size: 9px; font-weight: 600;
+    border: none; border-radius: 3px; cursor: pointer;
+  }
+  .demo-browser-refresh:hover { background: var(--brand-blue); color: #fff; }
+
+  /* Iframe scale trick */
+  .demo-iframe-wrap { flex: 1; position: relative; overflow: hidden; background: #f5f6fa; min-height: 0; }
+  .demo-iframe {
+    position: absolute; top: 0; left: 0;
+    width: 1400px; height: 900px;
+    border: none; transform-origin: top left;
+    background: #f5f6fa;
+  }
+
+  /* Footer */
+  .demo-footer {
+    display: flex; align-items: center;
+    padding: 3px 7px; background: var(--bg-subtle);
+    border-radius: 4px; border: 1px dashed var(--border);
+    font-size: 10px; color: var(--text-secondary);
+    flex-shrink: 0; gap: 6px;
+  }
+  .demo-play-toggle {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand-blue), var(--brand-purple));
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    border: none; cursor: pointer; flex-shrink: 0; transition: all 0.2s ease;
+  }
+  .demo-play-toggle:hover { transform: scale(1.1); }
+  .demo-play-toggle.playing { background: linear-gradient(135deg, var(--brand-orange), var(--danger)); }
+  .demo-cta-text strong { color: var(--text-title); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="ppt-page">
+
+  <!-- Header -->
+  <header class="ppt-header">
+    <div class="ppt-title">
+      RUM 会话回放：让用户的每一次挣扎、每一个错误、每一次卡顿都<span class="accent">"所见即所得"</span>
+    </div>
+    <div class="ppt-logo">
+      <div class="ppt-logo-icon">T</div>
+      <div class="ppt-logo-text">
+        <span class="ppt-logo-name">TDEM</span>
+        <span class="ppt-logo-subtitle">腾讯云 · 数字体验监控</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Body -->
+  <div class="ppt-body">
+
+    <!-- Left: Capabilities -->
+    <div class="capability-section">
+      <span class="section-label">核心能力 · 四大价值</span>
+      <div class="capability-list">
+
+        <!-- 01 挣扎识别 -->
+        <div class="cap-card c1">
+          <div class="cap-card-header">
+            <span class="cap-num">01</span>
+            <span class="cap-icon">👆</span>
+            <span class="cap-title">挣扎识别 · 点击即回放</span>
+          </div>
+          <div class="cap-desc"><strong>7 种挣扎事件</strong>自动采集，点击直达视频回放</div>
+          <ul class="cap-tag-list">
+            <li class="cap-tag">Rage Click 愤怒点击</li>
+            <li class="cap-tag">Dead Click 无效点击</li>
+            <li class="cap-tag">Form Zigzag 反复填写</li>
+            <li class="cap-tag">Thrash Cursor 光标乱抖</li>
+            <li class="cap-tag">Long Hesitation 长犹豫</li>
+            <li class="cap-tag">Slow Click 慢点击</li>
+            <li class="cap-tag">Excessive Scroll 过度滚动</li>
+          </ul>
+        </div>
+
+        <!-- 02 技术错误 -->
+        <div class="cap-card c2">
+          <div class="cap-card-header">
+            <span class="cap-num">02</span>
+            <span class="cap-icon">🐛</span>
+            <span class="cap-title">技术错误 · 全量可视</span>
+          </div>
+          <div class="cap-desc">回放中直接看到触发了<strong>哪些技术错误</strong></div>
+          <ul class="cap-tag-list">
+            <li class="cap-tag">JS Error</li>
+            <li class="cap-tag">Promise Error</li>
+            <li class="cap-tag">API Error</li>
+            <li class="cap-tag">资源加载错误</li>
+            <li class="cap-tag">自定义错误</li>
+            <li class="cap-tag">卡顿</li>
+            <li class="cap-tag">白屏</li>
+            <li class="cap-tag">崩溃</li>
+            <li class="cap-tag">OOM</li>
+          </ul>
+        </div>
+
+        <!-- 03 性能归因 -->
+        <div class="cap-card c3">
+          <div class="cap-card-header">
+            <span class="cap-num">03</span>
+            <span class="cap-icon">⚡</span>
+            <span class="cap-title">性能归因 · 关联真实操作</span>
+          </div>
+          <div class="cap-desc"><strong>LCP / INP / CLS</strong> 指标耗时 + 根因下钻</div>
+          <ul class="cap-tag-list">
+            <li class="cap-tag">性能指标看板</li>
+            <li class="cap-tag">Web Vitals 实时采集</li>
+            <li class="cap-tag">网络请求瀑布图</li>
+            <li class="cap-tag">静态资源加载归因</li>
+            <li class="cap-tag">点击关联用户真实操作</li>
+          </ul>
+        </div>
+
+        <!-- 04 三层脱敏 -->
+        <div class="cap-card c4">
+          <div class="cap-card-header">
+            <span class="cap-num">04</span>
+            <span class="cap-icon">🔒</span>
+            <span class="cap-title">三层脱敏 · 安全合规</span>
+          </div>
+          <div class="cap-sub">L1 SDK 采集防护</div>
+          <ul class="cap-tag-list">
+            <li class="cap-tag">录制遮罩</li>
+            <li class="cap-tag">输入值不采集</li>
+            <li class="cap-tag">自动敏感检测</li>
+          </ul>
+          <div class="cap-sub">L2 全局默认脱敏</div>
+          <ul class="cap-tag-list">
+            <li class="cap-tag">手机号</li>
+            <li class="cap-tag">身份证</li>
+            <li class="cap-tag">邮箱</li>
+            <li class="cap-tag">银行卡</li>
+            <li class="cap-tag">30+ 关键字</li>
+          </ul>
+          <div class="cap-sub">L3 项目自定义规则</div>
+          <ul class="cap-tag-list">
+            <li class="cap-tag">精确/前缀/正则</li>
+            <li class="cap-tag">热更新 30s</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Demo -->
+    <div class="demo-panel">
+      <div class="demo-header">
+        <div class="demo-title">
+          <span>🎬 选课失败场景 Demo</span>
+          <span class="demo-scenario-tag">🎓 星辰大学 · 春季选课</span>
+        </div>
+        <div class="demo-meta">
+          <span class="demo-meta-item">时长 <strong>~50s</strong></span>
+          <span class="demo-meta-item">9 个关键步骤</span>
+        </div>
+      </div>
+
+      <div class="demo-browser">
+        <div class="demo-browser-bar">
+          <div class="demo-browser-dot red"></div>
+          <div class="demo-browser-dot yellow"></div>
+          <div class="demo-browser-dot green"></div>
+          <div class="demo-browser-url">tdem.tencent.com/session-replay/sess_edu001</div>
+          <button class="demo-browser-refresh" onclick="reloadDemo()">↻ 重新播放</button>
+        </div>
+        <div class="demo-iframe-wrap" id="demo-iframe-wrap">
+          <iframe class="demo-iframe" id="demo-iframe"
+            src="../session-replay/index.html?scenario=edu&autoplay=1&theme=light"
+            title="TDEM Session Replay Demo"></iframe>
+        </div>
+      </div>
+
+      <div class="demo-footer">
+        <button class="demo-play-toggle" id="demo-play-toggle" onclick="toggleDemo()" title="播放 / 暂停">
+          <svg id="play-icon" width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg id="pause-icon" width="9" height="9" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        </button>
+        <div class="demo-cta-text"><strong>完整排障链路 9 步</strong> · 自动演示约 50 秒</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const IFRAME_NATIVE_W = 1400;
+  const IFRAME_NATIVE_H = 900;
+
+  function applyIframeScale() {
+    const wrap = document.getElementById('demo-iframe-wrap');
+    const iframe = document.getElementById('demo-iframe');
+    if (!wrap || !iframe) return;
+    const r = wrap.getBoundingClientRect();
+    if (r.width < 10 || r.height < 10) { requestAnimationFrame(applyIframeScale); return; }
+    const scale = Math.min(r.width / IFRAME_NATIVE_W, r.height / IFRAME_NATIVE_H);
+    const ox = Math.max(0, (r.width - IFRAME_NATIVE_W * scale) / 2);
+    const oy = Math.max(0, (r.height - IFRAME_NATIVE_H * scale) / 2);
+    iframe.style.transform = `translate(${ox}px,${oy}px) scale(${scale})`;
+  }
+
+  function reloadDemo() {
+    document.getElementById('demo-iframe').contentWindow.postMessage({ type: 'reloadDemo' }, '*');
+  }
+
+  function toggleDemo() {
+    document.getElementById('demo-iframe').contentWindow.postMessage({ type: 'toggleDemo' }, '*');
+  }
+
+  function updatePlayToggleUI(playing) {
+    const btn = document.getElementById('demo-play-toggle');
+    document.getElementById('play-icon').style.display = playing ? 'none' : 'block';
+    document.getElementById('pause-icon').style.display = playing ? 'block' : 'none';
+    btn.classList.toggle('playing', playing);
+  }
+
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'demoStateChange') updatePlayToggleUI(e.data.running);
+  });
+
+  document.getElementById('demo-iframe').addEventListener('load', () => {
+    setTimeout(() => {
+      document.getElementById('demo-iframe').contentWindow.postMessage({ type: 'queryDemoState' }, '*');
+    }, 1000);
+  });
+
+  window.addEventListener('load', applyIframeScale);
+  window.addEventListener('resize', applyIframeScale);
+  setTimeout(applyIframeScale, 100);
+  setTimeout(applyIframeScale, 500);
+  setTimeout(applyIframeScale, 1500);
+</script>
+</body>
+</html>

@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session Replay - TDEM</title>
+<link rel="stylesheet" href="style.css?v=20260401">
+<script>
+  var _tp = new URLSearchParams(window.location.search).get('theme');
+  document.documentElement.setAttribute('data-theme', _tp || localStorage.getItem('tdem-theme') || 'dark');
+</script>
+</head>
+<body>
+<div id="app">
+  <!-- Top Nav -->
+  <nav class="top-nav">
+    <div class="nav-left">
+      <div class="nav-logo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#4f8cff" stroke-width="2"/><path d="M7 12h10M12 7v10" stroke="#4f8cff" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <span class="nav-brand">TDEM</span>
+      <span class="nav-sep">/</span>
+      <span class="nav-page-name">Session Replay</span>
+    </div>
+    <div class="nav-right">
+      <button class="nav-icon-btn" title="通知"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></button>
+      <button class="nav-icon-btn" title="设置"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></button>
+      <div class="nav-avatar">L</div>
+    </div>
+  </nav>
+
+  <!-- ==================== LIST VIEW ==================== -->
+  <div id="list-view">
+    <!-- Scenario Switcher Bar -->
+    <div class="scenario-bar">
+      <div class="scenario-tabs" id="scenario-tabs">
+        <button class="scenario-tab active" data-scenario="bank" onclick="switchScenario('bank')">
+          <span class="scenario-icon">🏦</span>
+          <span class="scenario-name">银行业务</span>
+          <span class="scenario-hint">GlassBank 注册流程</span>
+        </button>
+        <button class="scenario-tab" data-scenario="edu" onclick="switchScenario('edu')">
+          <span class="scenario-icon">🎓</span>
+          <span class="scenario-name">在线选课</span>
+          <span class="scenario-hint">星辰大学春季选课</span>
+        </button>
+      </div>
+      <button class="btn-auto-demo" id="btn-auto-demo" onclick="runAutoDemo()" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span>播放自动演示</span>
+        <span class="auto-demo-hint">~50s</span>
+      </button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="toolbar-group">
+          <label class="toolbar-label">应用</label>
+          <div class="select-wrapper"><select id="app-select"><option selected>GlassBank-Web</option><option>GlassBank-Mobile</option></select></div>
+        </div>
+        <div class="toolbar-sep"></div>
+        <div class="toolbar-group">
+          <label class="toolbar-label">时间范围</label>
+          <div class="select-wrapper"><select id="time-select"><option value="24h">最近 24 小时</option><option value="7d" selected>最近 7 天</option><option value="30d">最近 30 天</option></select></div>
+        </div>
+        <div class="toolbar-sep"></div>
+        <div class="toolbar-group search-group">
+          <div class="search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="nl-search" placeholder="自然语言搜索，如：手机端用户在注册页触发 rage click 的会话">
+            <span class="search-badge">GIA</span>
+          </div>
+        </div>
+        <div class="toolbar-sep"></div>
+        <button class="btn btn-ghost" id="adv-filter-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          高级筛选
+        </button>
+      </div>
+    </div>
+
+    <!-- Advanced Filter Panel -->
+    <div class="adv-filter-panel" id="adv-filter-panel">
+      <div class="adv-filter-grid">
+        <div class="adv-filter-item">
+          <label>Has Struggle</label>
+          <div class="toggle-group"><button class="toggle-btn active" data-val="all">全部</button><button class="toggle-btn" data-val="yes">是</button><button class="toggle-btn" data-val="no">否</button></div>
+        </div>
+        <div class="adv-filter-item">
+          <label>Struggle Type</label>
+          <div class="chip-group"><span class="chip" data-val="rage_click">Rage Click</span><span class="chip" data-val="dead_click">Dead Click</span><span class="chip" data-val="form_zigzag">Form Zig-Zag</span><span class="chip" data-val="thrash_cursor">Thrash Cursor</span></div>
+        </div>
+        <div class="adv-filter-item">
+          <label>Has Error</label>
+          <div class="toggle-group"><button class="toggle-btn active" data-val="all">全部</button><button class="toggle-btn" data-val="yes">是</button><button class="toggle-btn" data-val="no">否</button></div>
+        </div>
+        <div class="adv-filter-item">
+          <label>Struggle Rank</label>
+          <div class="chip-group"><span class="chip">Excellent</span><span class="chip">Good</span><span class="chip">Fair</span><span class="chip">Poor</span></div>
+        </div>
+        <div class="adv-filter-item">
+          <label>Device Type</label>
+          <div class="chip-group"><span class="chip">Desktop</span><span class="chip">Mobile</span><span class="chip">Tablet</span></div>
+        </div>
+        <div class="adv-filter-item">
+          <label>Browser</label>
+          <div class="chip-group"><span class="chip">Chrome</span><span class="chip">Safari</span><span class="chip">Firefox</span><span class="chip">Edge</span></div>
+        </div>
+      </div>
+      <div class="adv-filter-footer">
+        <button class="btn btn-ghost" onclick="toggleAdvFilter()">收起</button>
+        <button class="btn btn-primary" onclick="applyAdvFilter()">应用筛选</button>
+      </div>
+    </div>
+
+    <!-- Active Filter Tags -->
+    <div class="active-filters" id="active-filters"></div>
+
+    <!-- Batch Action Toolbar (hidden by default) -->
+    <div class="batch-toolbar" id="batch-toolbar" style="display:none">
+      <div class="batch-toolbar-left">
+        <span class="batch-count" id="batch-count">0</span> 个会话已选中
+      </div>
+      <div class="batch-toolbar-right">
+        <button class="btn btn-ghost batch-btn" onclick="batchAction('tag')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          批量标记
+        </button>
+        <button class="btn btn-ghost batch-btn" onclick="batchAction('export')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          导出会话
+        </button>
+        <button class="btn btn-ghost batch-btn" onclick="batchAction('perf')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          性能对比
+        </button>
+        <button class="btn btn-ghost batch-btn" onclick="batchAction('clear')">清除选择</button>
+      </div>
+    </div>
+
+    <!-- Performance Quick Filters -->
+    <div class="perf-quick-filters" id="perf-quick-filters">
+      <span class="perf-filter-label">性能筛选:</span>
+      <button class="perf-filter-chip" data-filter="slow-lcp" onclick="togglePerfFilter(this)">🔴 LCP &gt; 2.5s</button>
+      <button class="perf-filter-chip" data-filter="slow-inp" onclick="togglePerfFilter(this)">🟡 INP &gt; 200ms</button>
+      <button class="perf-filter-chip" data-filter="bad-cls" onclick="togglePerfFilter(this)">📐 CLS &gt; 0.1</button>
+      <button class="perf-filter-chip" data-filter="long-tasks" onclick="togglePerfFilter(this)">⏱️ Long Tasks &gt; 3</button>
+    </div>
+
+    <!-- Session Table -->
+    <div class="table-wrapper">
+      <table class="session-table" id="session-table">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="select-all"></th>
+            <th class="sortable" data-sort="start_time">开始时间 <span class="sort-icon">↓</span></th>
+            <th class="sortable" data-sort="duration">时长</th>
+            <th class="sortable" data-sort="struggle_score">Struggle Score</th>
+            <th>Rank</th>
+            <th>User ID</th>
+            <th>浏览器</th>
+            <th>设备</th>
+            <th>OS</th>
+            <th>国家/地区</th>
+            <th class="sortable" data-sort="page_count">页面数</th>
+            <th class="sortable" data-sort="error_count">错误数</th>
+            <th class="sortable" data-sort="perf_lcp" data-web-only>LCP</th>
+            <th class="sortable" data-sort="perf_inp" data-web-only>INP</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="session-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <span class="pagination-info">共 <strong>79,500</strong> 个会话</span>
+      <div class="pagination-controls">
+        <button class="page-btn" disabled>«</button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">3</button>
+        <span class="page-dots">...</span>
+        <button class="page-btn">3975</button>
+        <button class="page-btn">»</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== REPLAY VIEW ==================== -->
+  <div id="replay-view" style="display:none">
+    <!-- Replay Top Bar -->
+    <div class="replay-topbar">
+      <div class="replay-topbar-left">
+        <button class="btn btn-ghost" onclick="backToList()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          返回列表
+        </button>
+
+        <div class="replay-session-info">
+          <span class="replay-session-id" id="replay-session-id">sess_abc123</span>
+          <span class="replay-meta">Duration: <strong>01:25</strong></span>
+          <span class="replay-meta">Score: <strong class="score-poor">0.73</strong></span>
+          <span class="rank-badge poor">Poor</span>
+        </div>
+      </div>
+      <div class="replay-topbar-right">
+        <button class="btn btn-ghost nav-session" id="prev-session" onclick="navigateSession(-1)" title="上一个会话">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="btn btn-ghost nav-session" id="next-session" onclick="navigateSession(1)" title="下一个会话">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="topbar-divider"></div>
+        <button class="btn btn-ghost" id="share-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> 分享</button>
+        <button class="btn btn-ghost" id="tag-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg> 标记</button>
+        <div class="dropdown" id="create-dropdown">
+          <button class="btn btn-primary dropdown-trigger" onclick="toggleCreateDropdown(event)">Create ▾</button>
+          <div class="dropdown-menu" id="create-dropdown-menu">
+            <div class="dropdown-item funnel-studio-item" onclick="createAction('funnel')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              分析此路径
+              <span class="dropdown-hint">查看群体数据 · 可保存为漏斗</span>
+            </div>
+            <div class="dropdown-item" onclick="createAction('page')">Page</div>
+            <div class="dropdown-item" onclick="createAction('action')">Action</div>
+            <div class="dropdown-item" onclick="createAction('attribute')">Attribute</div>
+            <div class="dropdown-item" onclick="createAction('validator')">Validator</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Replay Main Area -->
+    <div class="replay-main">
+      <!-- Left: Event + Performance Panel -->
+      <div class="event-panel">
+        <div class="event-panel-header">
+          <div class="panel-tab-bar">
+            <button class="panel-tab active" data-panel="events" onclick="switchPanelTab(this)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              事件列表
+            </button>
+            <button class="panel-tab" data-panel="performance" onclick="switchPanelTab(this)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              性能
+            </button>
+          </div>
+          <div class="event-filter-chips" id="event-filter-chips">
+            <button class="event-chip active" data-cat="all">全部</button>
+            <button class="event-chip" data-cat="struggle">挣扎</button>
+            <button class="event-chip" data-cat="technical">错误</button>
+            <button class="event-chip" data-cat="behavior">行为</button>
+          </div>
+        </div>
+        <div class="event-list" id="event-list"></div>
+        <!-- Performance Panel (hidden by default) -->
+        <div class="perf-panel" id="perf-panel" style="display:none">
+          <div class="perf-panel-section">
+            <div class="perf-panel-title">Web Vitals</div>
+            <div class="perf-vitals-grid" id="perf-vitals-grid"></div>
+          </div>
+          <div class="perf-panel-section">
+            <div class="perf-panel-title">性能 & 资源时间线</div>
+            <div class="perf-events-timeline" id="perf-events-timeline"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Player Area -->
+      <div class="player-area">
+        <!-- Player Screen -->
+        <div class="player-screen" id="player-screen">
+          <div class="player-placeholder">
+            <div class="mock-browser">
+              <div class="mock-browser-bar">
+                <span class="mock-dot red"></span>
+                <span class="mock-dot yellow"></span>
+                <span class="mock-dot green"></span>
+                <span class="mock-url" id="mock-url">glassbk.digital</span>
+              </div>
+              <div class="mock-content" id="mock-content">
+                <div class="mock-page" id="mock-page">
+                  <div class="mock-header">
+                    <div class="mock-logo">GlassBank</div>
+                    <div class="mock-nav-items"><span>Home</span><span>Products</span><span>About</span><span class="highlight">Register</span></div>
+                  </div>
+                  <div class="mock-hero">
+                    <div class="mock-hero-text">Welcome to GlassBank</div>
+                    <div class="mock-hero-sub">Your trusted digital banking partner</div>
+                    <button class="mock-cta">Get Started</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Cursor overlay -->
+            <div class="cursor-indicator" id="cursor-indicator">
+              <svg width="20" height="20" viewBox="0 0 24 24"><path d="M5 3l14 9-8 2-3 8z" fill="var(--blue)" stroke="var(--bg-1)" stroke-width="1"/></svg>
+            </div>
+            <!-- Click ripple -->
+            <div class="click-ripple" id="click-ripple"></div>
+          </div>
+        </div>
+
+        <!-- Player Controls -->
+        <div class="player-controls">
+          <div class="controls-row">
+            <button class="ctrl-btn" id="play-btn" title="播放">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+            <button class="ctrl-btn" id="skip-back-btn" title="快退 5s">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+            </button>
+            <button class="ctrl-btn" id="skip-fwd-btn" title="快进 5s">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+            </button>
+            <div class="speed-select">
+              <select id="speed-select">
+                <option value="0.25">×0.25</option>
+                <option value="0.5">×0.5</option>
+                <option value="1" selected>×1</option>
+                <option value="4">×4</option>
+                <option value="10">×10</option>
+              </select>
+            </div>
+            <div class="skip-toggle">
+              <label class="toggle-switch"><input type="checkbox" checked><span class="slider"></span></label>
+              <span>Skip Inactivity</span>
+            </div>
+            <div class="time-display">
+              <span id="current-time">00:00</span> / <span id="total-time">01:25</span>
+            </div>
+            <button class="ctrl-btn" id="fullscreen-btn" title="全屏">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            </button>
+          </div>
+          <!-- Progress Bar -->
+          <div class="progress-bar-container">
+            <div class="progress-bar" id="progress-bar">
+              <div class="progress-fill" id="progress-fill" style="width:35%"></div>
+              <div class="progress-handle" id="progress-handle" style="left:35%"></div>
+              <!-- Struggle markers -->
+              <div class="progress-marker struggle" style="left:35.3%" title="Rage Click"></div>
+              <div class="progress-marker struggle" style="left:49.4%" title="Dead Click"></div>
+              <div class="progress-marker struggle" style="left:56.5%" title="Form Zig-Zag"></div>
+              <div class="progress-marker error" style="left:64.7%" title="JS Error"></div>
+              <div class="progress-marker error" style="left:76.5%" title="API Error"></div>
+              <div class="progress-marker struggle" style="left:82.4%" title="Rage Click"></div>
+            </div>
+          </div>
+          <!-- Page Timeline -->
+          <div class="page-timeline" id="page-timeline"></div>
+        </div>
+
+        <!-- AI Insights (collapsible) -->
+        <div class="ai-panel" id="ai-panel">
+          <div class="ai-panel-header" onclick="toggleAIPanel()">
+            <div class="ai-panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>AI Insights</span>
+            </div>
+            <svg class="ai-chevron" id="ai-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="ai-panel-body" id="ai-panel-body">
+            <div class="ai-tabs">
+              <button class="ai-tab active" data-tab="all">All</button>
+              <button class="ai-tab" data-tab="technical">Technical</button>
+              <button class="ai-tab" data-tab="behavioral">Behavioral</button>
+              <button class="ai-tab" data-tab="performance">⚡ Performance</button>
+            </div>
+            <div class="ai-content" id="ai-content"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== FUNNEL STUDIO DRAWER ==================== -->
+  <div class="drawer-overlay" id="drawer-overlay" onclick="toggleFunnelStudio()"></div>
+  <div class="drawer-panel" id="drawer-panel">
+    <div class="drawer-header">
+      <div class="drawer-title-row">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        <span class="drawer-title">分析此路径</span>
+        <span class="ifs-badge" id="ifs-source-badge">基于当前会话路径</span>
+        <button class="drawer-close-btn" onclick="toggleFunnelStudio()" title="关闭">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <!-- Smart suggestion: matched existing funnels -->
+      <div class="ifs-match-hint" id="ifs-match-hint" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span id="ifs-match-text"></span>
+        <button class="btn btn-sm btn-ghost" id="ifs-match-action" onclick="openMatchedFunnel()">查看报告 →</button>
+      </div>
+    </div>
+    <div class="drawer-body">
+      <!-- Path Analysis Banner (Analyze This Path mode) -->
+      <div id="ifs-path-analysis"></div>
+
+      <!-- Funnel Name -->
+      <div class="ifs-name-row">
+        <label>漏斗名称</label>
+        <input type="text" id="ifs-funnel-name" class="ifs-name-input" value="">
+      </div>
+
+      <!-- Steps Editor -->
+      <div class="drawer-section-title">步骤编排</div>
+      <div class="ifs-steps" id="ifs-steps"></div>
+      <button class="btn btn-ghost btn-sm ifs-add-step" onclick="addInlineStep()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        添加步骤
+      </button>
+
+      <!-- Preview -->
+      <div class="drawer-section-title" style="margin-top:16px">漏斗预览</div>
+      <div class="ifs-mini-preview" id="ifs-mini-preview"></div>
+
+      <!-- Group Stats -->
+      <div class="ifs-group-stats" id="ifs-group-stats"></div>
+
+      <!-- AI Hint -->
+      <div class="ifs-ai-hint" id="ifs-ai-hint"></div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn btn-ghost" onclick="viewSimilarSessions()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        查看同路径会话
+      </button>
+      <button class="btn btn-ghost" onclick="saveAndStayFunnel()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+        保存为漏斗
+      </button>
+      <button class="btn btn-primary" onclick="saveAndViewFunnelReport()">
+        保存并查看报告 →
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+if (window.parent && window.parent !== window) {
+  document.addEventListener('DOMContentLoaded', function() {
+    var topNav = document.querySelector('.top-nav');
+    if (topNav) topNav.style.display = 'none';
+    var app = document.getElementById('app');
+    if (app) app.classList.add('top-nav-hidden');
+  });
+  var tn = document.querySelector('.top-nav');
+  if (tn) tn.style.display = 'none';
+}
+</script>
+
+<!-- ==================== Auto Demo Support (MUST be before app.js) ==================== -->
+<div class="demo-mask" id="demo-mask"></div>
+<div class="demo-tooltip" id="demo-tooltip">
+  <div class="demo-tooltip-step" id="demo-tooltip-step">第 1 / 9 步</div>
+  <div class="demo-tooltip-text" id="demo-tooltip-text"></div>
+  <div class="demo-tooltip-actions">
+    <button class="demo-tooltip-btn" onclick="cancelAutoDemo()">跳过演示 (ESC)</button>
+  </div>
+  <div class="demo-tooltip-arrow"></div>
+</div>
+<div class="demo-badge" id="demo-badge" style="display:none">
+  <span class="demo-badge-dot"></span>
+  <span>自动演示中...</span>
+  <span class="demo-badge-progress" id="demo-badge-progress">0%</span>
+</div>
+
+<script src="app.js?v=20260420b"></script>
+</body>
+</html>
